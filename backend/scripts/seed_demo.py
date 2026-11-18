@@ -6,11 +6,17 @@ from src.models.user import User
 from src.models.source import Source
 from src.models.record import Record
 from src.models.run import Run
+from src.models.relation import MaterialRelation
+from src.models.relation_version import RelationVersion
+from src.models.invalidation_job import InvalidationJob
 from src.models import note,audit
 from src.utils.security import hash_password
 from src.utils.serialization import now
 from src.services.runs import queue
 from src.services.domain_validation import validate_record
+from src.services.relations import add_relation
+from src.schemas.relation import RelationInput
+from src.services.invalidation import process_pending
 
 def seed_values(kind,index,batch,rng):
     if kind=='gaussian':
@@ -31,18 +37,20 @@ def seed_values(kind,index,batch,rng):
         return {'visitor':f'V{uid+1:03}','exhibit':f'E{exhibit+1:02}','rating':round(max(1,min(5,3+(1 if exhibit%3==uid%3 else -.4)+rng.gauss(0,.55))),1)}
 
 def counts(db):
-    return {cls.__tablename__:db.scalar(select(func.count()).select_from(cls)) for cls in (User,Source,Record,Run)}
+    return {cls.__tablename__:db.scalar(select(func.count()).select_from(cls)) for cls in (User,Source,Record,Run,MaterialRelation,RelationVersion,InvalidationJob)}
 def seed():
     Base.metadata.create_all(engine);rng=random.Random(42);queued=[]
     with Session() as db:
         for role in ('admin','analyst','viewer'):
             email=role+'@'+CONFIG['slug']+'.demo'
             if not db.scalar(select(User).where(User.email==email)):db.add(User(email=email,password_hash=hash_password('Research2026!'),role=role))
+        sources=[]
         for batch in range(3):
             key=CONFIG['code']+f'-202611-{batch+1:02}'
             source=db.scalar(select(Source).where(Source.key==key))
             if not source:
                 source=Source(key=key,name=key+' '+['秋季常规组','复测对照组','工艺观察组'][batch],filename=CONFIG['slug']+f'-202611-{batch+1:02}.csv',description=CONFIG['scenario']);db.add(source);db.flush()
+            sources.append(source)
             for index in range(CONFIG['seed_count']):
                 reference=key+f'-{index+1:04}'
                 vals=seed_values(CONFIG['algorithm'],index,batch,rng)
@@ -51,9 +59,20 @@ def seed():
             db.flush()
             if batch==0 and not db.scalar(select(Run.id).where(Run.name=='首轮种子研究')):
                 records=[{'id':r.id,'source_id':r.source_id,'reference':r.reference,'values':r.values} for r in db.scalars(select(Record).where(Record.source_id==source.id).order_by(Record.id))]
-                run=Run(source_id=source.id,name='首轮种子研究',state='queued',parameters=CONFIG['default_parameters'],snapshot={'source':{'id':source.id,'name':source.name,'filename':source.filename},'records':records},created_at=now());db.add(run);db.flush();queued.append(run.id)
+                run=Run(source_id=source.id,source_ids=[source.id],relation_version=0,name='首轮种子研究',state='queued',parameters=CONFIG['default_parameters'],snapshot={'sources':[{'id':source.id,'name':source.name,'filename':source.filename}],'source':{'id':source.id,'name':source.name,'filename':source.filename},'records':records,'relation_version':0,'group_ids':[source.id]},created_at=now());db.add(run);db.flush();queued.append(run.id)
         db.commit();print(json.dumps(counts(db),ensure_ascii=False))
     for id in queued:
         try:queue.rpush('analysis:queue',id)
         except Exception:logging.exception('seed queue unavailable')
+    # 演示母料归并：来源1与来源2被认作同一母料切分（直接关系），
+    # 再补一条来源2→来源3，使来源1与来源3经间接关联同组；首轮旧研究随之失效。
+    class _SeedUser:email='admin@'+CONFIG['slug']+'.demo'
+    with Session() as db:
+        if not db.scalar(select(MaterialRelation.id)):
+            s1,s2,s3=[db.scalar(select(Source).where(Source.key==CONFIG['code']+f'-202611-{i:02}')) for i in (1,2,3)]
+            add_relation(db,_SeedUser(),RelationInput(left_source_id=s1.id,right_source_id=s2.id,reason='种子演示：两份试件流确认切自同一母料 MB-2026-11A'))
+            add_relation(db,_SeedUser(),RelationInput(left_source_id=s2.id,right_source_id=s3.id,reason='种子演示：复测批次与工艺观察批次间接同母料'))
+    # 立即兜底处理失效任务，保证页面首次打开即看到失效原因（worker 也会周期扫描）。
+    try:process_pending()
+    except Exception:logging.exception('seed invalidation sweep failed')
 if __name__=='__main__':seed()

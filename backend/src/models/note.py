@@ -1,4 +1,4 @@
-from sqlalchemy import Column,Integer,String,Text,JSON,ForeignKey
+from sqlalchemy import Column,Integer,String,Text,JSON,Boolean,ForeignKey
 from ..config.database import Base
 from ..config.settings import CONFIG
 class Note(Base):
@@ -11,3 +11,5 @@ class Note(Base):
     frozen_result=Column(JSON,nullable=False)
     author=Column(String(120),nullable=False)
     approved_by=Column(String(120),default='')
+    is_valid=Column(Boolean,default=True,nullable=False)
+    invalid_reason=Column(Text,default='')

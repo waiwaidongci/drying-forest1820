@@ -1,3 +1,50 @@
 -- SQLAlchemy metadata initializes tables idempotently.
 -- Domain tables: drying_studies, drying_samples, regression_runs, process_memos.
 -- Unique natural keys: source.key; (record.source_id, record.reference).
+--
+-- 母料关系归并特性（由 SQLAlchemy create_all 在空库自动建表；既有库按下列 DDL 升级）：
+--
+-- CREATE TABLE material_relations (
+--   id SERIAL PRIMARY KEY,
+--   left_source_id INTEGER NOT NULL REFERENCES drying_studies(id),
+--   right_source_id INTEGER NOT NULL REFERENCES drying_studies(id),
+--   state VARCHAR(20) NOT NULL DEFAULT 'active',
+--   reason TEXT DEFAULT '',
+--   created_by VARCHAR(120) NOT NULL,
+--   revoked_by VARCHAR(120) DEFAULT '',
+--   created_at VARCHAR(40) NOT NULL,
+--   revoked_at VARCHAR(40) DEFAULT '',
+--   CONSTRAINT uq_relation_pair UNIQUE (left_source_id, right_source_id)
+-- );
+-- CREATE INDEX ix_relation_state ON material_relations(state);
+--
+-- CREATE TABLE relation_versions (
+--   id SERIAL PRIMARY KEY,
+--   version INTEGER NOT NULL UNIQUE,
+--   components JSON NOT NULL,
+--   source_components JSON NOT NULL,
+--   relations JSON NOT NULL,
+--   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+--   created_by VARCHAR(120) NOT NULL,
+--   created_at VARCHAR(40) NOT NULL
+-- );
+--
+-- CREATE TABLE invalidation_jobs (
+--   id SERIAL PRIMARY KEY,
+--   run_id INTEGER NOT NULL,
+--   relation_version INTEGER NOT NULL,
+--   reason TEXT NOT NULL,
+--   state VARCHAR(20) NOT NULL DEFAULT 'pending',
+--   attempts INTEGER NOT NULL DEFAULT 0,
+--   last_error TEXT DEFAULT '',
+--   created_at VARCHAR(40) NOT NULL,
+--   processed_at VARCHAR(40) DEFAULT ''
+-- );
+--
+-- ALTER TABLE regression_runs ADD COLUMN IF NOT EXISTS source_ids JSON;
+-- ALTER TABLE regression_runs ADD COLUMN IF NOT EXISTS relation_version INTEGER NOT NULL DEFAULT 0;
+-- ALTER TABLE regression_runs ADD COLUMN IF NOT EXISTS is_valid BOOLEAN NOT NULL DEFAULT TRUE;
+-- ALTER TABLE regression_runs ADD COLUMN IF NOT EXISTS invalid_reason TEXT DEFAULT '';
+-- ALTER TABLE regression_runs ADD COLUMN IF NOT EXISTS invalidated_version INTEGER NOT NULL DEFAULT 0;
+-- ALTER TABLE process_memos ADD COLUMN IF NOT EXISTS is_valid BOOLEAN NOT NULL DEFAULT TRUE;
+-- ALTER TABLE process_memos ADD COLUMN IF NOT EXISTS invalid_reason TEXT DEFAULT '';

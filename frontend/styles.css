@@ -3,3 +3,34 @@
 @media(max-width:1100px){.identity small{display:none}.workspace{grid-template-columns:160px minmax(0,1fr)}main{padding:28px 24px 60px}.overview-grid,.split,.result-grid{gap:24px}.ledger>a{grid-template-columns:30px 1fr 70px}.ledger time{display:none}.bar{grid-template-columns:100px 1fr 55px}.metrics{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:800px){.login-layout{grid-template-columns:1fr}.login-story{padding:40px 30px}.login-story h1{font-size:2.4rem;margin-top:25px}.rule-note{margin-top:25px}.login-story footer{margin-top:25px}.login-form{padding:35px 30px}.masthead{padding:16px;height:auto;gap:10px;align-items:flex-start}.brand{gap:10px}.brand strong{font-size:.85rem}.identity{gap:10px;font-size:.7rem}.workspace{display:block}nav{border-right:0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);padding:10px;gap:2px}nav a{font-size:.75rem;padding:8px;gap:8px}nav p{display:none}main{padding:26px 18px 50px}.overview-grid,.split,.config-split,.result-grid{grid-template-columns:1fr}.intro h1{font-size:2rem}.method-sheet{padding:18px}.metrics dd{font-size:1.5rem}.run-title button{margin-left:0}.parameter-fields{grid-template-columns:1fr}.notice{left:12px;right:12px;bottom:12px;max-width:none}.bar{grid-template-columns:110px 1fr 65px}.brand span{width:34px;height:34px;flex-shrink:0}.page-heading h1{font-size:1.8rem}.login-story:after{display:none}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* 母料关系归并与有效性呈现 */
+.status.valid{color:oklch(40% .1 145);border-color:oklch(60% .08 145);background:oklch(91% .035 145)}
+.status.invalid{color:oklch(45% .16 28);border-color:oklch(62% .14 28);background:oklch(92% .04 28)}
+.status.pending{color:var(--accent);border-color:var(--accent);background:color-mix(in oklch,var(--paper) 88%,var(--accent))}
+.banner.pending{display:flex;align-items:center;gap:14px;border-style:solid;border-color:var(--accent);padding:16px 20px}
+.banner.pending .spinner{flex-shrink:0}
+.group-card{border:1px solid var(--line);padding:16px 18px;margin:12px 0;background:var(--light)}
+.group-card.merged{border-left:5px solid var(--accent)}
+.group-card.solo{opacity:.72}
+.group-card header small{letter-spacing:.08em;color:var(--muted)}
+.group-card ul{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.group-card li{display:flex;flex-direction:column;border:1px solid var(--line);padding:8px 10px;background:color-mix(in oklch,var(--paper) 96%,var(--ink))}
+.group-card li small{color:var(--muted)}
+.relation-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.relation-row{display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid var(--line);padding:14px 16px}
+.relation-row.revoked{opacity:.62;background:var(--light)}
+.relation-row p{margin:4px 0 6px}
+.relation-row button{flex-shrink:0;font-size:.74rem}
+.version-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.version-row{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);padding:10px 12px;font-size:.78rem}
+.version-row.active{border-left:4px solid var(--accent)}
+.version-row.superseded{opacity:.6}
+.version-row small{color:var(--muted);font-size:.7rem;text-align:right}
+.source-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 18px}
+.source-checks label.check{display:flex;align-items:center;gap:9px;margin:0;border:1px solid var(--line);padding:9px 11px;font-weight:400;font-size:.82rem}
+.source-checks label.check input{width:auto;margin:0}
+.ledger>a.is-invalid{opacity:.66}
+.ledger>a.is-invalid strong{text-decoration:line-through;text-decoration-color:var(--accent)}
+.invalid-reason{border-left:4px solid oklch(62% .14 28);padding:10px 14px;background:oklch(94% .03 28);font-size:.82rem;margin:12px 0}
+.note-record.is-invalid{opacity:.86}
+@media(max-width:768px){.source-checks{grid-template-columns:1fr}.relation-row,.version-row{grid-template-columns:1fr}.group-card ul{grid-template-columns:1fr}}
